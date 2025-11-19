@@ -1,48 +1,52 @@
 """
-Database Schemas
+Database Schemas for Barbershop Booking System
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
-
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+Each Pydantic model represents a MongoDB collection.
+Collection name is the lowercase of the class name.
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List, Literal
 
-# Example schemas (replace with your own):
-
-class User(BaseModel):
+class Barber(BaseModel):
     """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
+    Collection: "barber"
     """
-    name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+    name: str = Field(..., description="Barber full name")
+    specialties: List[str] = Field(default_factory=list, description="List of specialties (fade, beard, kids, etc.)")
+    phone: Optional[str] = Field(None, description="Contact phone")
+    photo_url: Optional[str] = Field(None, description="Profile image URL")
+    working_days: List[str] = Field(default_factory=lambda: ["sat", "sun", "mon", "tue", "wed"], description="Working days (sat..fri)")
+    start_time: str = Field("09:00", description="Workday start HH:MM 24h")
+    end_time: str = Field("20:00", description="Workday end HH:MM 24h")
+    slot_minutes: int = Field(30, ge=10, le=240, description="Default slot size in minutes")
 
-class Product(BaseModel):
+class Service(BaseModel):
     """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
+    Collection: "service"
     """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
+    title: str = Field(..., description="Service name (e.g., Haircut)")
+    duration_minutes: int = Field(30, ge=10, le=240, description="Duration in minutes")
+    price: float = Field(0, ge=0, description="Price amount")
+    description: Optional[str] = Field(None, description="Optional description")
 
-# Add your own schemas here:
-# --------------------------------------------------
+class Customer(BaseModel):
+    """
+    Collection: "customer"
+    """
+    name: str
+    phone: str
+    email: Optional[str] = None
 
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+class Appointment(BaseModel):
+    """
+    Collection: "appointment"
+    """
+    barber_id: str = Field(..., description="Barber document id as string")
+    service_id: str = Field(..., description="Service document id as string")
+    customer_name: str
+    customer_phone: str
+    date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$", description="YYYY-MM-DD")
+    time: str = Field(..., pattern=r"^\d{2}:\d{2}$", description="HH:MM 24h start time")
+    status: Literal["scheduled", "cancelled"] = Field("scheduled")
+    notes: Optional[str] = None
